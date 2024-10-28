@@ -1,7 +1,15 @@
+using CRUD_FSBR.Services;
+using Microsoft.EntityFrameworkCore;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddDbContext<ProcessosDBContext>(options =>
+{
+    var connString = builder.Configuration.GetConnectionString("ProcessosDBConnection");
+    options.UseSqlServer(connString);
+});
 
 var app = builder.Build();
 
