@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using CRUD_FSBR.Models;
 using CRUD_FSBR.Services;
+using System.Text.Json;
 
 namespace CRUD_FSBR.Controllers
 {
@@ -20,9 +21,21 @@ namespace CRUD_FSBR.Controllers
         }
 
         // GET: Processos
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
-            return View(await _context.Processos.ToListAsync());
+            var totalItems = await _context.Processos.CountAsync();
+            var totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            var processos = await _context.Processos
+                .OrderBy(x => x.Id)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            ViewBag.CurrentPage = page;
+            ViewBag.TotalPages = totalPages;
+
+            return View(processos);
         }
 
         // GET: Processos/Details/5
@@ -43,26 +56,82 @@ namespace CRUD_FSBR.Controllers
             return View(processo);
         }
 
-        // GET: Processos/Create
-        public IActionResult Create()
+        // GET: Processos/UpdateVizualizadoEm/5
+        public async Task<IActionResult> UpdateVizualizadoEm(int id)
         {
+            try
+            {
+                await _context.Processos
+                    .Where(p => p.Id == id)
+                    .ExecuteUpdateAsync(a => a.SetProperty(
+                        p => p.VisualizadoEm, DateTime.Now
+                    ));
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!ProcessoExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+            return Json(new { success = true, visualizadoEm = DateTime.Now });
+        }
+
+        // GET: Processos/Create
+        public async Task<IActionResult> Create()
+        {
+            using (var client = new HttpClient())
+            {
+                var apiUrl = "https://servicodados.ibge.gov.br/api/v1/localidades/estados";
+                var response = await client.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                var UFList = JsonSerializer.Deserialize<List<UF>>(content) ?? new List<UF> { new UF { sigla = "ERRO" } };
+                ViewBag.UFList = UFList.OrderBy(q => q.sigla);
+            }
             return View();
         }
 
+        // GET: Processos/GetMunicipios/SP
+        public async Task<IActionResult> GetMunicipios(string uf)
+        {
+            using (var client = new HttpClient())
+            {
+                var apiUrl = $"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{uf}/municipios";
+                var response = await client.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                var municipios = JsonSerializer.Deserialize<List<Municipio>>(content) ?? new List<Municipio> { new Municipio { nome = "ERRO" } };
+                return Json(municipios.OrderBy(q => q.nome));
+            }
+        }
+
         // POST: Processos/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Nome,Npu,CadastradoEm,VisualizadoEm,UF,Municipio")] Processo processo)
+        public async Task<IActionResult> Create([Bind("Nome,Npu,UF,Municipio")] ProcessoDTO processodto)
         {
             if (ModelState.IsValid)
             {
+                string[] municipio = processodto.Municipio.Split("_");
+                var processo = new Processo()
+                {
+                    CadastradoEm = DateTime.Now,
+                    VisualizadoEm = DateTime.Now,
+                    Nome = processodto.Nome,
+                    Npu = processodto.Npu,
+                    Municipio = new MunicipioRes { id = municipio.First(), nome = municipio.Last() },
+                    UF = processodto.UF,
+                };
                 _context.Add(processo);
                 await _context.SaveChangesAsync();
                 return RedirectToAction(nameof(Index));
             }
-            return View(processo);
+            return View(processodto);
         }
 
         // GET: Processos/Edit/5
@@ -78,31 +147,60 @@ namespace CRUD_FSBR.Controllers
             {
                 return NotFound();
             }
-            return View(processo);
+
+            using (var client = new HttpClient())
+            {
+                var apiUrl = "https://servicodados.ibge.gov.br/api/v1/localidades/estados";
+                var response = await client.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                var UFList = JsonSerializer.Deserialize<List<UF>>(content) ?? new List<UF> { new UF { sigla = "ERRO" } };
+                ViewBag.UFList = UFList.OrderBy(q => q.sigla);
+            }
+
+            using (var client = new HttpClient())
+            {
+                var apiUrl = $"https://servicodados.ibge.gov.br/api/v1/localidades/estados/{processo.UF}/municipios"; ;
+                var response = await client.GetAsync(apiUrl);
+                response.EnsureSuccessStatusCode();
+                var content = await response.Content.ReadAsStringAsync();
+                var MunicipioList = JsonSerializer.Deserialize<List<Municipio>>(content) ?? new List<Municipio> { new Municipio { id = 0, nome = "ERRO" } };
+                ViewBag.MunicipioList = MunicipioList.OrderBy(q => q.nome);
+            }
+
+            var processoDto = new ProcessoDTO()
+            {
+                Nome = processo.Nome,
+                Municipio = $"{processo.Municipio.id}_{processo.Municipio.nome}",
+                Npu = processo.Npu,
+                UF = processo.UF
+            };
+
+            return View(processoDto);
         }
 
         // POST: Processos/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Nome,Npu,CadastradoEm,VisualizadoEm,UF,Municipio")] Processo processo)
+        public async Task<IActionResult> Edit(int id, [Bind("Nome,Npu,UF,Municipio")] ProcessoDTO processodto)
         {
-            if (id != processo.Id)
-            {
-                return NotFound();
-            }
-
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(processo);
-                    await _context.SaveChangesAsync();
+                    string[] municipio = processodto.Municipio.Split("_");
+                    await _context.Processos
+                        .Where(p => p.Id == id)
+                        .ExecuteUpdateAsync(a => a
+                            .SetProperty(p => p.Nome, processodto.Nome)
+                            .SetProperty(p => p.Npu, processodto.Npu)
+                            .SetProperty(p => p.Municipio, new MunicipioRes { id = municipio.First(), nome = municipio.Last() })
+                            .SetProperty(p => p.UF, processodto.UF)
+                        );
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ProcessoExists(processo.Id))
+                    if (!ProcessoExists(id))
                     {
                         return NotFound();
                     }
@@ -113,7 +211,7 @@ namespace CRUD_FSBR.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
-            return View(processo);
+            return View(processodto);
         }
 
         // GET: Processos/Delete/5

@@ -1,59 +1,90 @@
-﻿@model CRUD_FSBR.Models.Processo
+﻿@model CRUD_FSBR.Models.ProcessoDTO
 
 @{
     ViewData["Title"] = "EDIT";
+    var ufList = ViewBag.UFList;
+    var municipioList = ViewBag.MunicipioList;
 }
 
 <h1>EDIÇÃO DE PROCESSO</h1>
 
-<h4>Processo</h4>
-<hr />
-<div class="row">
-    <div class="col-md-4">
-        <form asp-action="Edit">
-            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-            <input type="hidden" asp-for="Id" />
-            <div class="form-group">
-                <label asp-for="Nome" class="control-label"></label>
-                <input asp-for="Nome" class="form-control" />
-                <span asp-validation-for="Nome" class="text-danger"></span>
+<form asp-action="Edit">
+    <div class="mb-4">
+        <h4>Processo</h4>
+        <hr />
+        <div class="row">
+            <div class="col-md-4">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input type="hidden" asp-for="Id" />
+                <div class="form-group">
+                    <label asp-for="Nome" class="control-label"></label>
+                    <input asp-for="Nome" class="form-control" />
+                    <span asp-validation-for="Nome" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Npu" class="control-label"></label>
+                    <input asp-for="Npu" class="form-control" />
+                    <span asp-validation-for="Npu" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="UF" class="control-label"></label>
+                    <select asp-for="UF" class="form-control" id="uf-select">
+                        <option value="">Selecione um estado</option>
+                        @foreach (var uf in ufList)
+                        {
+                            <option value=@uf.sigla>@uf.sigla</option>
+                        }
+                    </select>
+                    <span asp-validation-for="UF" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label asp-for="Municipio" class="control-label"></label>
+                    <select asp-for="Municipio" class="form-control" id="municipio-select">
+                        @foreach (var municipio in municipioList)
+                        {
+                            <option value=@($"{municipio.id}_{municipio.nome}")>@municipio.nome</option>
+                        }
+                    </select>
+                    <span asp-validation-for="Municipio" class="text-danger"></span>
+                </div>
             </div>
-            <div class="form-group">
-                <label asp-for="Npu" class="control-label"></label>
-                <input asp-for="Npu" class="form-control" />
-                <span asp-validation-for="Npu" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="CadastradoEm" class="control-label"></label>
-                <input asp-for="CadastradoEm" class="form-control" />
-                <span asp-validation-for="CadastradoEm" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="VisualizadoEm" class="control-label"></label>
-                <input asp-for="VisualizadoEm" class="form-control" />
-                <span asp-validation-for="VisualizadoEm" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="UF" class="control-label"></label>
-                <input asp-for="UF" class="form-control" />
-                <span asp-validation-for="UF" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <label asp-for="Municipio" class="control-label"></label>
-                <input asp-for="Municipio" class="form-control" />
-                <span asp-validation-for="Municipio" class="text-danger"></span>
-            </div>
-            <div class="form-group">
-                <input type="submit" value="Save" class="btn btn-primary" />
-            </div>
-        </form>
+        </div>
     </div>
-</div>
 
-<div>
-    <a asp-action="Index" class="btn btn-info">VOLTAR A LISTA</a>
-</div>
+    <div>
+        <input type="submit" value="SALVAR" class="btn btn-primary" /> |
+        <a asp-action="Index" class="btn btn-info">VOLTAR A LISTA</a>
+    </div>
+</form>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+    <script>
+        document.getElementById('uf-select').addEventListener('change', function () {
+            var uf = this.value;
+            var municipioSelect = document.getElementById('municipio-select');
+            municipioSelect.innerHTML = '<option value="">Carregando...</option>';
+            if (!!uf && uf !== "") {
+                    fetch(`/Processos/GetMunicipios?uf=${uf}`)
+                    .then(response => response.json())
+                    .then(municipios => {
+                        municipioSelect.innerHTML = '';
+                        municipios.forEach(municipio => {
+                            var option = document.createElement('option');
+                            option.value = `${municipio.id}_${municipio.nome}`;
+                            option.text = municipio.nome;
+                            municipioSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => {
+                        municipioSelect.innerHTML = '<option value="">Erro ao carregar municípios</option>';
+                        console.error('Erro:', error);
+                    });
+            } else {
+                municipioSelect.innerHTML = '<option value="">Selecione um estado primeiro</option>';
+            }
+        });
+    </script>
 }
