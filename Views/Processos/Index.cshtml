@@ -1,0 +1,65 @@
+﻿@model IEnumerable<CRUD_FSBR.Models.Processo>
+
+@{
+    ViewData["Title"] = "LIST";
+}
+
+<h1>LISTA DE PROCESSOS</h1>
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">NOVO PROCESSO</a>
+</p>
+<table class="table">
+    <thead>
+        <tr>
+            <th>
+                @Html.DisplayNameFor(model => model.Nome)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Npu)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.CadastradoEm)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.VisualizadoEm)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.UF)
+            </th>
+            <th>
+                @Html.DisplayNameFor(model => model.Municipio)
+            </th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+    @foreach (var item in Model) {
+        <tr>
+            <td>
+                @Html.DisplayFor(modelItem => item.Nome)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Npu)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.CadastradoEm)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.VisualizadoEm)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.UF)
+            </td>
+            <td>
+                @Html.DisplayFor(modelItem => item.Municipio)
+            </td>
+            <td>
+                <a asp-action="Details" class="btn btn-primary" asp-route-id="@item.Id">👁️ DETALHES</a> |
+                <a asp-action="Edit" class="btn btn-warning" asp-route-id="@item.Id">✏️ EDITAR</a> |
+                <a asp-action="Delete" class="btn btn-danger" asp-route-id="@item.Id">🗑️ DELETAR</a>
+            </td>
+        </tr>
+    }
+    </tbody>
+</table>

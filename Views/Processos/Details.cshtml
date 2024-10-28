@@ -1,0 +1,54 @@
+﻿@model CRUD_FSBR.Models.Processo
+
+@{
+    ViewData["Title"] = "READ";
+}
+
+<h1>LEITURA DO PROCESSO</h1>
+
+<div>
+    <h4>Processo</h4>
+    <hr />
+    <dl class="row">
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Nome)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Nome)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Npu)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Npu)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.CadastradoEm)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.CadastradoEm)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.VisualizadoEm)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.VisualizadoEm)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.UF)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.UF)
+        </dd>
+        <dt class = "col-sm-2">
+            @Html.DisplayNameFor(model => model.Municipio)
+        </dt>
+        <dd class = "col-sm-10">
+            @Html.DisplayFor(model => model.Municipio)
+        </dd>
+    </dl>
+</div>
+<div>
+    <a asp-action="Edit" class="btn btn-warning" asp-route-id="@Model?.Id">✏️ EDITAR</a> |
+    <a asp-action="Index" class="btn btn-info">VOLTAR A LISTA</a>
+</div>
